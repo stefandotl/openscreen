@@ -26,7 +26,14 @@ ipcMain.on("hud-overlay-hide", () => {
 
 ipcMain.on("hud-overlay-ignore-mouse-events", (_event, ignore: boolean) => {
 	if (hudOverlayWindow && !hudOverlayWindow.isDestroyed()) {
+		if (process.platform === "linux") return;
 		hudOverlayWindow.setIgnoreMouseEvents(ignore, { forward: true });
+	}
+});
+
+ipcMain.on("hud-overlay-shape", (_event, rects: Electron.Rectangle[]) => {
+	if (hudOverlayWindow && !hudOverlayWindow.isDestroyed()) {
+		hudOverlayWindow.setShape(rects);
 	}
 });
 
@@ -83,7 +90,9 @@ export function createHudOverlayWindow(): BrowserWindow {
 			backgroundThrottling: false,
 		},
 	});
-	win.setIgnoreMouseEvents(true, { forward: true });
+	if (process.platform !== "linux") {
+		win.setIgnoreMouseEvents(true, { forward: true });
+	}
 
 	// Follow the user across macOS Spaces (virtual desktops).
 	// Without this the HUD stays pinned to the Space it was first opened on.

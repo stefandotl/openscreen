@@ -302,6 +302,32 @@ export function LaunchWindow() {
 		setHudMouseEventsEnabled(isLanguageMenuOpen);
 	}, [isLanguageMenuOpen, setHudMouseEventsEnabled]);
 
+	useEffect(() => {
+		let interval: NodeJS.Timeout;
+		nativeBridgeClient.system.getPlatform().then((platform) => {
+			if (platform === "linux") {
+				interval = setInterval(() => {
+					const elements = document.querySelectorAll("[data-hud-interactive='true']");
+					const rects = Array.from(elements).map((el) => {
+						const rect = el.getBoundingClientRect();
+						return {
+							x: Math.round(rect.left),
+							y: Math.round(rect.top),
+							width: Math.round(rect.width),
+							height: Math.round(rect.height),
+						};
+					});
+					if (window.electronAPI?.setHudOverlayShape) {
+						window.electronAPI.setHudOverlayShape(rects);
+					}
+				}, 100);
+			}
+		});
+		return () => {
+			if (interval) clearInterval(interval);
+		};
+	}, []);
+
 	const [selectedSource, setSelectedSource] = useState("Screen");
 	const [hasSelectedSource, setHasSelectedSource] = useState(false);
 	const [, setRecordPointerDownCount] = useState(0);

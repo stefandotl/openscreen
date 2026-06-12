@@ -242,7 +242,8 @@ interface Window {
 		saveShortcuts: (shortcuts: unknown) => Promise<{ success: boolean; error?: string }>;
 		hudOverlayHide: () => void;
 		hudOverlayClose: () => void;
-		setHudOverlayIgnoreMouseEvents: (ignore: boolean) => void;
+		setHudOverlayIgnoreMouseEvents?: (ignore: boolean) => void;
+		setHudOverlayShape?: (rects: { x: number; y: number; width: number; height: number }[]) => void;
 		moveHudOverlayBy: (deltaX: number, deltaY: number) => void;
 		showCountdownOverlay: (value: number, runId: number) => Promise<void>;
 		setCountdownOverlayValue: (value: number, runId: number) => Promise<void>;
