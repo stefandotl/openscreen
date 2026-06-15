@@ -1,4 +1,8 @@
 import type { Rectangle } from "electron";
+import {
+	findLinuxCursorHelperPath,
+	LinuxNativeCursorRecordingSession,
+} from "./linuxNativeCursorRecordingSession";
 import { MacNativeCursorRecordingSession } from "./macNativeCursorRecordingSession";
 import type { CursorRecordingSession } from "./session";
 import { TelemetryRecordingSession } from "./telemetryRecordingSession";
@@ -10,6 +14,7 @@ interface CreateCursorRecordingSessionOptions {
 	platform: NodeJS.Platform;
 	sampleIntervalMs: number;
 	sourceId?: string | null;
+	sourceName?: string | null;
 	startTimeMs?: number;
 }
 
@@ -35,7 +40,18 @@ export function createCursorRecordingSession(
 		});
 	}
 
-	// Linux: capture cursor positions via Electron's `screen` API on an interval.
+	if (options.platform === "linux" && findLinuxCursorHelperPath()) {
+		return new LinuxNativeCursorRecordingSession({
+			getDisplayBounds: options.getDisplayBounds,
+			maxSamples: options.maxSamples,
+			sampleIntervalMs: options.sampleIntervalMs,
+			sourceId: options.sourceId,
+			sourceName: options.sourceName,
+			startTimeMs: options.startTimeMs,
+		});
+	}
+
+	// Fallback: capture cursor positions via Electron's `screen` API on an interval.
 	// No cursor sprites/assets and no clicks — just position telemetry.
 	return new TelemetryRecordingSession({
 		getDisplayBounds: options.getDisplayBounds,

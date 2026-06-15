@@ -38,7 +38,11 @@ import Item from "./Item";
 import KeyframeMarkers from "./KeyframeMarkers";
 import Row from "./Row";
 import TimelineWrapper from "./TimelineWrapper";
-import { detectZoomDwellCandidates, normalizeCursorTelemetry } from "./zoomSuggestionUtils";
+import {
+	detectZoomClickCandidates,
+	detectZoomDwellCandidates,
+	normalizeCursorTelemetry,
+} from "./zoomSuggestionUtils";
 
 const ZOOM_ROW_ID = "row-zoom";
 const TRIM_ROW_ID = "row-trim";
@@ -1158,15 +1162,17 @@ export default function TimelineEditor({
 		}
 
 		const dwellCandidates = detectZoomDwellCandidates(normalizedSamples);
+		const clickCandidates = detectZoomClickCandidates(normalizedSamples);
+		const zoomCandidates = [...clickCandidates, ...dwellCandidates];
 
-		if (dwellCandidates.length === 0) {
+		if (zoomCandidates.length === 0) {
 			toast.info(t("errors.noDwellMoments"), {
 				description: t("errors.noDwellMomentsDescription"),
 			});
 			return;
 		}
 
-		const sortedCandidates = [...dwellCandidates].sort((a, b) => b.strength - a.strength);
+		const sortedCandidates = zoomCandidates.sort((a, b) => b.strength - a.strength);
 		const acceptedCenters: number[] = [];
 
 		let addedCount = 0;

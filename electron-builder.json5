@@ -69,7 +69,14 @@
     ],
     "icon": "icons/icons/png",
     "artifactName": "${productName}-Linux-${version}.${ext}",
-    "category": "AudioVideo"
+    "category": "AudioVideo",
+    "extraResources": [
+      {
+        "from": "electron/native/bin",
+        "to": "electron/native/bin",
+        "filter": ["linux-*/*"]
+      }
+    ]
   },
   "win": {
     "target": [

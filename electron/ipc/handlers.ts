@@ -516,6 +516,8 @@ async function readCursorTelemetryFile(targetVideoPath: string) {
 				timeMs: sample.timeMs,
 				cx: sample.cx,
 				cy: sample.cy,
+				interactionType: sample.interactionType,
+				cursorType: sample.cursorType,
 			})),
 		};
 	} catch (error) {
@@ -766,6 +768,7 @@ async function startCursorRecording(recordingId?: number) {
 		platform: process.platform,
 		sampleIntervalMs: CURSOR_SAMPLE_INTERVAL_MS,
 		sourceId: getSelectedSourceId(),
+		sourceName: selectedSource?.name,
 		startTimeMs:
 			typeof recordingId === "number" && Number.isFinite(recordingId) ? recordingId : undefined,
 	});
@@ -2167,7 +2170,11 @@ export function registerIpcHandlers(
 		async (_, recording: boolean, recordingId?: number, cursorCaptureMode?: CursorCaptureMode) => {
 			const normalizedCursorCaptureMode =
 				normalizeCursorCaptureMode(cursorCaptureMode) ?? "editable-overlay";
-			if (recording && normalizedCursorCaptureMode === "editable-overlay") {
+			const shouldRecordCursorTelemetry =
+				recording &&
+				(normalizedCursorCaptureMode === "editable-overlay" || process.platform === "linux");
+
+			if (shouldRecordCursorTelemetry) {
 				await startCursorRecording(recordingId);
 			} else {
 				await stopCursorRecording();

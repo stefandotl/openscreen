@@ -3,6 +3,8 @@ import type { CursorTelemetryPoint, ZoomFocus } from "../types";
 export const MIN_DWELL_DURATION_MS = 450;
 export const MAX_DWELL_DURATION_MS = 2600;
 export const DWELL_MOVE_THRESHOLD = 0.02;
+export const CLICK_CLUSTER_WINDOW_MS = 900;
+export const CLICK_CANDIDATE_STRENGTH = 10_000;
 
 export interface ZoomDwellCandidate {
 	centerTimeMs: number;
@@ -18,6 +20,8 @@ function normalizeTelemetrySample(
 		timeMs: Math.max(0, Math.min(sample.timeMs, totalMs)),
 		cx: Math.max(0, Math.min(sample.cx, 1)),
 		cy: Math.max(0, Math.min(sample.cy, 1)),
+		...(sample.interactionType ? { interactionType: sample.interactionType } : {}),
+		...(sample.cursorType ? { cursorType: sample.cursorType } : {}),
 	};
 }
 
@@ -78,4 +82,52 @@ export function detectZoomDwellCandidates(samples: CursorTelemetryPoint[]): Zoom
 	pushRunIfDwell(runStart, samples.length);
 
 	return dwellCandidates;
+}
+
+function isClickSample(sample: CursorTelemetryPoint) {
+	return (
+		sample.interactionType === "click" ||
+		sample.interactionType === "double-click" ||
+		sample.interactionType === "right-click" ||
+		sample.interactionType === "middle-click"
+	);
+}
+
+export function detectZoomClickCandidates(samples: CursorTelemetryPoint[]): ZoomDwellCandidate[] {
+	const clickSamples = samples.filter(isClickSample);
+	if (clickSamples.length === 0) {
+		return [];
+	}
+
+	const candidates: ZoomDwellCandidate[] = [];
+	let cluster: CursorTelemetryPoint[] = [];
+
+	const pushCluster = () => {
+		if (cluster.length === 0) {
+			return;
+		}
+
+		const avgCx = cluster.reduce((sum, sample) => sum + sample.cx, 0) / cluster.length;
+		const avgCy = cluster.reduce((sum, sample) => sum + sample.cy, 0) / cluster.length;
+		const first = cluster[0];
+		const last = cluster[cluster.length - 1];
+
+		candidates.push({
+			centerTimeMs: Math.round((first.timeMs + last.timeMs) / 2),
+			focus: { cx: avgCx, cy: avgCy },
+			strength: CLICK_CANDIDATE_STRENGTH + cluster.length,
+		});
+	};
+
+	for (const sample of clickSamples) {
+		const previous = cluster[cluster.length - 1];
+		if (previous && sample.timeMs - previous.timeMs > CLICK_CLUSTER_WINDOW_MS) {
+			pushCluster();
+			cluster = [];
+		}
+		cluster.push(sample);
+	}
+	pushCluster();
+
+	return candidates;
 }
